@@ -6,6 +6,6 @@ transaction {
         // store the empty NFT Collection in account storage
         acct.save( <- collection, to:ImsaNFTContract.CollectionStoragePath)
         // create a public capability for the Collection
-        acct.link<&{ImsaNFTContract.ImsaNFTContractCollectionPublic}>(ImsaNFTContract.CollectionPublicPath, target: ImsaNFTContract.CollectionStoragePath)
+        acct.link<&{ImsaNFTContract.ImsaNFTContractCollectionPublic}>(ImsaNFTContract.CollectionPublicPath, target:ImsaNFTContract.CollectionStoragePath)
     }
 }

@@ -18,8 +18,14 @@ transaction(packId: UInt64, price: UFix64, receiptAccount: Address, ownerAccount
          ?? panic("Could not borrow buyer vault reference")
         
        let packOpenResource <- adminRef.purchasePack(packId: packId, flowPayment: <- vaultRef.withdraw(amount: price), receiptAccount: receiptAccount)
-       tokenRecipientAccount.save(<- packOpenResource, to: PackContract.PackOpenStoragePath)
-       tokenRecipientAccount.link<&{PackContract.PackOpenPublicMethods}>(PackContract.PackOpenPublicPath, target: PackContract.PackOpenStoragePath)
+        if(packOpenResource != nil) {
+            tokenRecipientAccount.save<@PackContract.PackOpen>(<- packOpenResource!, to: PackContract.PackOpenStoragePath)
+            tokenRecipientAccount.link<&{PackContract.PackOpenPublicMethods}>(PackContract.PackOpenPublicPath, target: PackContract.PackOpenStoragePath)
+        }
+        else{
+            destroy  packOpenResource
+        }
+          
 
     }
     execute{

@@ -3,7 +3,6 @@ import FungibleToken from 0xee82856bf20e2aa6
 import ImsaNFTContract from 0xf8d6e0586b0a20c7
 import FlowToken from 0x0ae53cb6e3f42a79
 
-
 pub contract  PackContract{
   // Events
   // Emitted when contract initialized
@@ -91,6 +90,7 @@ pub contract  PackContract{
     pub fun purchasePack(packId: UInt64, flowPayment: @FungibleToken.Vault, receiptAccount: Address): @PackContract.PackOpen? {
       pre {
         packId !=0 && PackContract.allPacks[packId] != nil: "Please provide valid pack id"
+        PackContract.userPacks[receiptAccount] == nil || PackContract.userPacks[receiptAccount]!.contains(packId) == false: "User already buy this pack" 
         flowPayment.balance == PackContract.allPacks[packId]!.packPrice: "your balance is not enough to buy the pack"
         receiptAccount != nil: "receipent address should not be null" 
       }
@@ -102,13 +102,15 @@ pub contract  PackContract{
             <&{PackContract.PackOpenPublicMethods}>
             (PackContract.PackOpenPublicPath)
 
-      if PackContract.userPacks[receiptAccount] == nil && openPackRef == nil{
+      if PackContract.userPacks.containsKey(receiptAccount) == false {
         PackContract.userPacks[receiptAccount]= [packId]
        return <- PackContract.createPackOpen(packId: packId)
       }
       else{
+        assert(PackContract.userPacks[receiptAccount]!.contains(packId) != true, message: "you have already buy this pack before")
         PackContract.userPacks[receiptAccount]!.append(packId)
         openPackRef!.borrow()!.addUserPackIds(packId: packId)
+        log("add id to pack resource")
         return  nil
 
       }
@@ -169,10 +171,10 @@ pub contract  PackContract{
         }
         i = i + 1
       }
-      let indexOFValue = PackContract.userPacks[receiptAccount]!.firstIndex(of: packId)!
+      //let indexOFValue = PackContract.userPacks[receiptAccount]!.firstIndex(of: packId)!
       let indexOFPackIds = self.userPackIds.firstIndex(of: packId)!
       self.userPackIds.remove(at: indexOFPackIds)
-      PackContract.userPacks[receiptAccount]!.remove(at: indexOFValue)
+      //PackContract.userPacks[receiptAccount]!.remove(at: indexOFValue)
       emit PackOpened(packId: packId, receiptAddress: receiptAccount) 
     }
     

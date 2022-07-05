@@ -6,12 +6,14 @@ pub fun main():Bool{
     //let cap = account.getCapability(/public/UserSpecialCapability)
       //     .borrow<&{NFTContract.UserSpecialCapability}>()
     //let cap = account.getCapability(NFTContract.CollectionPublicPath)
-      // .borrow<&{NonFungibleToken.CollectionPublic}>()
-    let cap = account.getCapability
-            <&{PackContract.PackOpenPublicMethods}>
-            (PackContract.PackOpenPublicPath)
+    //   // .borrow<&{NonFungibleToken.CollectionPublic}>()
+    // let cap = account.getCapability
+    //         <&{PackContract.PackOpenPublicMethods}>
+    //         (PackContract.PackOpenPublicPath)
     //let cap = account.getCapability(PackContract.PackPublicPath).borrow<&{PackContract.PackPublicMethods}>()
       
+    let cap = account.getCapability(PackContract.PackOpenPublicPath).borrow<&{PackContract.PackOpenPublicMethods}>()
+
     if cap == nil {
         return false
     }
