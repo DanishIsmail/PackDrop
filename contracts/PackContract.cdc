@@ -107,7 +107,6 @@ pub contract  PackContract{
        return <- PackContract.createPackOpen(packId: packId)
       }
       else{
-        assert(PackContract.userPacks[receiptAccount]!.contains(packId) != true, message: "you have already buy this pack before")
         PackContract.userPacks[receiptAccount]!.append(packId)
         openPackRef!.borrow()!.addUserPackIds(packId: packId)
         log("add id to pack resource")
