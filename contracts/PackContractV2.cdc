@@ -17,10 +17,14 @@ pub contract  PackContract{
   // Paths for the pack contract
   // Storage path for pack
   pub let PackStoragePath: StoragePath
+  // Storage path for pack open
+  pub let PackOpenStoragePath: StoragePath
   // Private path for pack
   pub let PackPrivatePath: PrivatePath
   // Public path for pack
   pub let PackPublicPath: PublicPath
+  // Public path for pack open
+  pub let PackOpenPublicPath: PublicPath
 
   // State Vraibles
   // dictionary to store the pack data against pack id
@@ -49,9 +53,13 @@ pub contract  PackContract{
   }
   
   pub resource interface PackPublicMethods{
-    pub fun purchasePack(packId: UInt64, flowPayment: @FungibleToken.Vault, receiptAccount: Address)
-    pub fun openPack(packId: UInt64, receiptAccount: Address)
+    pub fun purchasePack(packId: UInt64, flowPayment: @FungibleToken.Vault, receiptAccount: Address): @PackContract.PackOpen?
   }
+
+  pub resource interface PackOpenPublicMethods{
+    pub fun addUserPackIds(packId: UInt64)
+  }
+
 
   pub resource Pack: PackPublicMethods {
     // variable to store admin vault refrence 
@@ -79,9 +87,10 @@ pub contract  PackContract{
     }
 
     // method to purchase the pack
-    pub fun purchasePack(packId: UInt64, flowPayment: @FungibleToken.Vault, receiptAccount: Address) {
+    pub fun purchasePack(packId: UInt64, flowPayment: @FungibleToken.Vault, receiptAccount: Address): @PackContract.PackOpen? {
       pre {
         packId !=0 && PackContract.allPacks[packId] != nil: "Please provide valid pack id"
+        PackContract.userPacks[receiptAccount] == nil || PackContract.userPacks[receiptAccount]!.contains(packId) == false: "User already buy this pack" 
         flowPayment.balance == PackContract.allPacks[packId]!.packPrice: "your balance is not enough to buy the pack"
         receiptAccount != nil: "receipent address should not be null" 
       }
@@ -89,41 +98,26 @@ pub contract  PackContract{
       let ownerVaultRef = self.ownerVault!.borrow()
                 ?? panic("Could not borrow reference to owner token vault")
       ownerVaultRef.deposit(from: <- flowPayment)
-      if PackContract.userPacks.containsKey(receiptAccount) == nil {
+      let openPackRef = getAccount(receiptAccount).getCapability
+            <&{PackContract.PackOpenPublicMethods}>
+            (PackContract.PackOpenPublicPath)
+
+      if PackContract.userPacks.containsKey(receiptAccount) == false {
         PackContract.userPacks[receiptAccount]= [packId]
+       return <- PackContract.createPackOpen(packId: packId)
       }
       else{
         PackContract.userPacks[receiptAccount]!.append(packId)
-      }
-      let packPrice = PackContract.allPacks[packId]!.packPrice
+        openPackRef!.borrow()!.addUserPackIds(packId: packId)
+        log("add id to pack resource")
+        return  nil
 
-      emit PackPurchased(packId: packId, price: packPrice, receiptAddress: receiptAccount)
+      }
+      //let packPrice = PackContract.allPacks[packId]!.packPrice
+
+      //emit PackPurchased(packId: packId, price: packPrice, receiptAddress: receiptAccount)
     }
 
-    pub fun openPack(packId: UInt64, receiptAccount: Address){
-      pre {
-        packId !=0 && PackContract.allPacks[packId] != nil: "Please provide valid pack id"
-        receiptAccount != nil && PackContract.userPacks[receiptAccount] != nil: "receipent address should not be null"
-        PackContract.userPacks[receiptAccount]!.contains(packId) == true: "User does not have any pack"
-      }
-      //var count: UInt64 = 0
-      let totalMints = PackContract.allPacks[packId]!.totalNFTs
-      var i: UInt64 = 0
-      while i < totalMints {
-        let templateData = ImsaNFTContract.getTemplateById(templateId: PackContract.availableNFTS[i])
-        if templateData.issuedSupply < templateData.maxSupply {
-          PackContract.adminref.borrow()!.mintNFT(templateId: templateData.templateId, account: receiptAccount, immutableData: nil)
-          //count.saturatingAdd(1)
-          }
-        else {
-            PackContract.availableNFTS.remove(at: templateData.templateId)
-        }
-        i = i + 1
-      }
-      let indexOFValue = PackContract.userPacks[receiptAccount]!.firstIndex(of: packId)!
-      PackContract.userPacks[receiptAccount]!.remove(at: indexOFValue)
-      emit PackOpened(packId: packId, receiptAddress: receiptAccount) 
-    }
 
     pub fun addAvailableNFTs(templateIds: [UInt64]) {
       pre {
@@ -143,7 +137,57 @@ pub contract  PackContract{
     }
   }
 
-  //method to get All Packs
+  pub resource PackOpen: PackOpenPublicMethods {
+    // variable to store user purchased packs Ids
+    access(contract) var userPackIds: [UInt64]
+
+    //method to add new packIds for user
+    pub fun addUserPackIds(packId: UInt64){
+      pre{
+        packId !=0 && PackContract.allPacks[packId] != nil: "please provide valid pacId"
+      }
+      self.userPackIds.append(packId)
+    }
+
+    // method to open the pack
+    pub fun openPack(packId: UInt64, receiptAccount: Address){
+      pre {
+        packId !=0 && self.userPackIds.contains(packId) == true && PackContract.allPacks[packId] != nil: "Please provide valid pack id"
+        receiptAccount != nil && PackContract.userPacks[receiptAccount] != nil: "receipent address should not be null"
+        PackContract.userPacks[receiptAccount]!.contains(packId) == true: "User does not have any pack"
+      }
+      //var count: UInt64 = 0
+      let totalMints = PackContract.allPacks[packId]!.totalNFTs
+      var i: UInt64 = 0
+      while i < totalMints {
+        let templateData = ImsaNFTContract.getTemplateById(templateId: PackContract.availableNFTS[i])
+        if templateData.issuedSupply < templateData.maxSupply {
+          PackContract.adminref.borrow()!.mintNFT(templateId: templateData.templateId, account: receiptAccount, immutableData: nil)
+          //count.saturatingAdd(1)
+          }
+        else {
+            PackContract.availableNFTS.remove(at: templateData.templateId)
+        }
+        i = i + 1
+      }
+      //let indexOFValue = PackContract.userPacks[receiptAccount]!.firstIndex(of: packId)!
+      let indexOFPackIds = self.userPackIds.firstIndex(of: packId)!
+      self.userPackIds.remove(at: indexOFPackIds)
+      //PackContract.userPacks[receiptAccount]!.remove(at: indexOFValue)
+      emit PackOpened(packId: packId, receiptAddress: receiptAccount) 
+    }
+    
+    init(packId :UInt64){
+      self.userPackIds = [packId]
+    }
+  }
+
+  // method to create the openPack resourcre
+  access(contract) fun createPackOpen(packId: UInt64): @PackContract.PackOpen {
+    return <- create  PackOpen(packId: packId)
+  }
+
+  // method to get All Packs
   pub fun getAllPacks():{UInt64: PackData} {
     return  self.allPacks
   }
@@ -165,6 +209,8 @@ pub contract  PackContract{
     self.PackStoragePath = /storage/packStoragePath
     self.PackPublicPath = /public/packPublicPath
     self.PackPrivatePath = /private/packPrivatePath
+    self.PackOpenStoragePath = /storage/packOpenStoragePath
+    self.PackOpenPublicPath = /public/packOpenPublicPath
     
     self.account.save(<- create Pack(), to: self.PackStoragePath)
     self.account.link<&{PackContract.PackPublicMethods}>(self.PackPublicPath, target: self.PackStoragePath)
