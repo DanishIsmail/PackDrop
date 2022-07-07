@@ -10,23 +10,16 @@ transaction(packId: UInt64, price: UFix64, receiptAccount: Address, ownerAccount
 
         let adminRef = AdminAccount.getCapability
             <&{PackContract.PackPublicMethods}>
-            (PackContract.PackPublicPath)
+            (PackContract.PackAdminPublicPath)
             .borrow()
             ?? panic("could not borrow reference to UserSpecialCapability")
        
         let vaultRef = tokenRecipientAccount.borrow<&FlowToken.Vault>(from: /storage/flowTokenVault) 
          ?? panic("Could not borrow buyer vault reference")
         
-       let packOpenResource <- adminRef.purchasePack(packId: packId, flowPayment: <- vaultRef.withdraw(amount: price), receiptAccount: receiptAccount)
-        if(packOpenResource != nil) {
-            tokenRecipientAccount.save<@PackContract.PackOpen>(<- packOpenResource!, to: PackContract.PackOpenStoragePath)
-            tokenRecipientAccount.link<&{PackContract.PackOpenPublicMethods}>(PackContract.PackOpenPublicPath, target: PackContract.PackOpenStoragePath)
-        }
-        else{
-            destroy  packOpenResource
-        }
-          
-
+        adminRef.purchasePack(packId: packId, flowPayment: <- vaultRef.withdraw(amount: price), receiptAccount: receiptAccount)
+       
+        
     }
     execute{
         log("Pack purchased")

@@ -156,7 +156,8 @@ pub contract  PackContract{
         }
         i = i + 1
       }
-    
+
+      self.userPackId = 0
       emit PackOpened(packId: self.userPackId, receiptAddress: receiptAccount) 
     }
     
@@ -177,8 +178,9 @@ pub contract  PackContract{
 
     pub fun withdrawPack(withdrawPackId: UInt64): @PackContract.Pack {
       pre {
-        withdrawPackId != 0 && self.ownedPacks[withdrawPackId] != nil: "please provide valid id"
+         self.ownedPacks[withdrawPackId] != nil: "please provide valid id"
       }
+      // withdrawPackId != 0 &&
       emit PackWithdrawan(packId: withdrawPackId, receiptAddress: self.owner?.address!)
       return <- self.ownedPacks.remove(key: withdrawPackId)! 
 
@@ -189,11 +191,13 @@ pub contract  PackContract{
         token !=nil: "please provide valid pack"
         token.transferAble == true: "could not transfer pack"
       }
-      self.totalPacksCount.saturatingAdd(1)
+      let count = self.totalPacksCount
       let id = token.userPackId
       token.updateTransferStatus(transferAble: false)
-      self.ownedPacks[self.totalPacksCount] <-! token
+      let oldToken <- self.ownedPacks[count] <- token  
+      self.totalPacksCount.saturatingAdd(1)
       emit PackDeposited(packId: id, receiptAddress: self.owner?.address!)
+      destroy  oldToken
     }
 
     pub fun getTotalPackIDs(): [UInt64]{
@@ -202,7 +206,7 @@ pub contract  PackContract{
 
     init(){
       self.ownedPacks <- {}
-      self.totalPacksCount = 0
+      self.totalPacksCount = 1
     }
 
     destroy () {
