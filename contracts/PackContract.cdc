@@ -105,7 +105,6 @@ pub contract  PackContract{
       let userPackCollectionRef = getAccount(receiptAccount).getCapability(PackContract.PackCollectionPublicPath)
                                   .borrow<&{PackContract.PackCollectionPublicMethods}>() 
                                   ?? panic("could not get reciever refrence to pack collection")
-      
       userPackCollectionRef!.depositPack(token: <- PackContract.createPackOpen(packId: packId, transferAble: true))
 
       let packPrice = PackContract.allPacks[packId]!.packPrice
@@ -178,9 +177,8 @@ pub contract  PackContract{
 
     pub fun withdrawPack(withdrawPackId: UInt64): @PackContract.Pack {
       pre {
-         self.ownedPacks[withdrawPackId] != nil: "please provide valid id"
+        withdrawPackId != 0 && self.ownedPacks[withdrawPackId] != nil: "please provide valid id"
       }
-      // withdrawPackId != 0 &&
       emit PackWithdrawan(packId: withdrawPackId, receiptAddress: self.owner?.address!)
       return <- self.ownedPacks.remove(key: withdrawPackId)! 
 
@@ -191,19 +189,18 @@ pub contract  PackContract{
         token !=nil: "please provide valid pack"
         token.transferAble == true: "could not transfer pack"
       }
-      let count = self.totalPacksCount
       let id = token.userPackId
       token.updateTransferStatus(transferAble: false)
-      let oldToken <- self.ownedPacks[count] <- token  
-      self.totalPacksCount.saturatingAdd(1)
+      let oldToken <- self.ownedPacks[self.totalPacksCount] <- token  
+      self.totalPacksCount = self.totalPacksCount + 1
       emit PackDeposited(packId: id, receiptAddress: self.owner?.address!)
-      destroy  oldToken
+      destroy oldToken
     }
 
     pub fun getTotalPackIDs(): [UInt64]{
       return self.ownedPacks.keys
     }
-
+    
     init(){
       self.ownedPacks <- {}
       self.totalPacksCount = 1

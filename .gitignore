@@ -4,3 +4,4 @@
 node_modules/
 flow.json
 package-lock.json
+flowdb/
