@@ -1,6 +1,6 @@
 import NonFungibleToken from 0xf8d6e0586b0a20c7
 
-pub contract ImsaNFTContract: NonFungibleToken {
+pub contract NFTContract: NonFungibleToken {
 
     // Events
     pub event ContractInitialized()
@@ -84,7 +84,7 @@ pub contract ImsaNFTContract: NonFungibleToken {
                 brandName.length > 0: "Brand name is required";
             }
 
-            let newBrandId = ImsaNFTContract.lastIssuedBrandId
+            let newBrandId = NFTContract.lastIssuedBrandId
             self.brandId = newBrandId
             self.brandName = brandName
             self.author = author
@@ -111,7 +111,7 @@ pub contract ImsaNFTContract: NonFungibleToken {
                 schemaName.length > 0: "Could not create schema: name is required"
             }
 
-            let newSchemaId = ImsaNFTContract.lastIssuedSchemaId
+            let newSchemaId = NFTContract.lastIssuedSchemaId
             self.schemaId = newSchemaId
             self.schemaName = schemaName
             self.author = author
@@ -137,16 +137,16 @@ pub contract ImsaNFTContract: NonFungibleToken {
 
         init(brandId: UInt64, schemaId: UInt64, maxSupply: UInt64, immutableData: {String: AnyStruct}, mutableData: {String: AnyStruct}?) {
             pre {
-                ImsaNFTContract.allBrands[brandId] != nil:"Brand Id must be valid"
-                ImsaNFTContract.allSchemas[schemaId] != nil:"Schema Id must be valid"
+                NFTContract.allBrands[brandId] != nil:"Brand Id must be valid"
+                NFTContract.allSchemas[schemaId] != nil:"Schema Id must be valid"
                 maxSupply > 0 : "MaxSupply must be greater than zero"
                 immutableData != nil: "ImmutableData must not be nil"
             }
 
             // Before creating template, we need to check template data, if it is valid against given schema or not
-            let schema = ImsaNFTContract.allSchemas[schemaId]!
-            ImsaNFTContract.validateDataAgainstSchema(format: schema.format, data: immutableData)
-            self.templateId = ImsaNFTContract.lastIssuedTemplateId
+            let schema = NFTContract.allSchemas[schemaId]!
+            NFTContract.validateDataAgainstSchema(format: schema.format, data: immutableData)
+            self.templateId = NFTContract.lastIssuedTemplateId
             self.brandId = brandId
             self.schemaId = schemaId
             self.maxSupply = maxSupply
@@ -232,10 +232,10 @@ pub contract ImsaNFTContract: NonFungibleToken {
         access(contract) let data: NFTData
 
         init(templateID: UInt64, mintNumber: UInt64, immutableData: {String: AnyStruct}?) {
-            ImsaNFTContract.totalSupply = ImsaNFTContract.totalSupply + 1
-            self.id = ImsaNFTContract.totalSupply
-            ImsaNFTContract.allNFTs[self.id] = NFTData(templateID: templateID, mintNumber: mintNumber, immutableData: immutableData)
-            self.data = ImsaNFTContract.allNFTs[self.id]!
+            NFTContract.totalSupply = NFTContract.totalSupply + 1
+            self.id = NFTContract.totalSupply
+            NFTContract.allNFTs[self.id] = NFTData(templateID: templateID, mintNumber: mintNumber, immutableData: immutableData)
+            self.data = NFTContract.allNFTs[self.id]!
             emit NFTMinted(nftId: self.id, templateId: templateID, mintNumber: mintNumber)
         }
         destroy(){
@@ -243,15 +243,15 @@ pub contract ImsaNFTContract: NonFungibleToken {
         }
     }
 
-    /** ImsaNFTContractCollectionPublic
+    /** NFTContractCollectionPublic
     *   A public interface extending the standard NFT Collection with type information specific
     *   to NowWhere NFTs.
     */
-    pub resource interface ImsaNFTContractCollectionPublic {
+    pub resource interface NFTContractCollectionPublic {
         pub fun deposit(token: @NonFungibleToken.NFT)
         pub fun getIDs(): [UInt64]
         pub fun borrowNFT(id: UInt64): &NonFungibleToken.NFT
-        pub fun borrowNowWhereNFT(id: UInt64): &ImsaNFTContract.NFT? {
+        pub fun borrowNowWhereNFT(id: UInt64): &NFTContract.NFT? {
             // If the result isn't nil, the id of the returned reference
             // should be the same as the argument to the function
             post {
@@ -264,7 +264,7 @@ pub contract ImsaNFTContract: NonFungibleToken {
     /** Collection
     *   Collection is a resource that lie in user storage to manage owned NFT resource
     */
-    pub resource Collection: ImsaNFTContractCollectionPublic, NonFungibleToken.Provider, NonFungibleToken.Receiver, NonFungibleToken.CollectionPublic {
+    pub resource Collection: NFTContractCollectionPublic, NonFungibleToken.Provider, NonFungibleToken.Receiver, NonFungibleToken.CollectionPublic {
         // ownedNFTs will manage all user owned NFTs against it NFT id
         pub var ownedNFTs: @{UInt64: NonFungibleToken.NFT}
 
@@ -283,7 +283,7 @@ pub contract ImsaNFTContract: NonFungibleToken {
 
         // deposit mehtod will store NFT into user storage 
         pub fun deposit(token: @NonFungibleToken.NFT) {
-            let token <- token as! @ImsaNFTContract.NFT
+            let token <- token as! @NFTContract.NFT
             let id = token.id
             let oldToken <- self.ownedNFTs[id] <- token
             if self.owner?.address != nil {
@@ -297,16 +297,16 @@ pub contract ImsaNFTContract: NonFungibleToken {
             return (&self.ownedNFTs[id] as &NonFungibleToken.NFT?)!
         }
 
-        // borrowNowWhereNFT returns a borrowed reference to a ImsaNFTContract
+        // borrowNowWhereNFT returns a borrowed reference to a NFTContract
         // so that the caller can read data and call methods from it.
         //
         // Parameters: id: The ID of the NFT to get the reference for
         //
         // Returns: A reference to the NFT
-        pub fun borrowNowWhereNFT(id: UInt64): &ImsaNFTContract.NFT? {
+        pub fun borrowNowWhereNFT(id: UInt64): &NFTContract.NFT? {
             if self.ownedNFTs[id] != nil {
                 let ref = (&self.ownedNFTs[id] as auth &NonFungibleToken.NFT?)!
-                return ref as! &ImsaNFTContract.NFT
+                return ref as! &NFTContract.NFT
             } else {
                 return nil
             }
@@ -343,13 +343,13 @@ pub contract ImsaNFTContract: NonFungibleToken {
         
         pub fun addwhiteListedAccount(_user: Address) {
             pre{
-                ImsaNFTContract.whiteListedAccounts.contains(_user) == false: "user already exist"
+                NFTContract.whiteListedAccounts.contains(_user) == false: "user already exist"
             }
-            ImsaNFTContract.whiteListedAccounts.append(_user)
+            NFTContract.whiteListedAccounts.append(_user)
         }
 
         pub fun isWhiteListedAccount(_user: Address): Bool {
-            return ImsaNFTContract.whiteListedAccounts.contains(_user)
+            return NFTContract.whiteListedAccounts.contains(_user)
         }
 
         init(){}
@@ -375,7 +375,7 @@ pub contract ImsaNFTContract: NonFungibleToken {
                 // valid before executing the method
                 cap.borrow() != nil: "could not borrow a reference to the SpecialCapability"
                 self.capability == nil: "resource already has the SpecialCapability"
-                ImsaNFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
+                NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
             }
             // add the SpecialCapability
             self.capability = cap
@@ -387,14 +387,14 @@ pub contract ImsaNFTContract: NonFungibleToken {
                 // the transaction will instantly revert if
                 // the capability has not been added
                 self.capability != nil: "I don't have the special capability :("
-                ImsaNFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
+                NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
             }
 
             let newBrand = Brand(brandName: brandName, author: self.owner?.address!, data: data)
-            ImsaNFTContract.allBrands[ImsaNFTContract.lastIssuedBrandId] = newBrand
-            emit BrandCreated(brandId: ImsaNFTContract.lastIssuedBrandId ,brandName: brandName, author: self.owner?.address!, data: data)
-            self.ownedBrands[ImsaNFTContract.lastIssuedBrandId] = newBrand 
-            ImsaNFTContract.lastIssuedBrandId = ImsaNFTContract.lastIssuedBrandId + 1
+            NFTContract.allBrands[NFTContract.lastIssuedBrandId] = newBrand
+            emit BrandCreated(brandId: NFTContract.lastIssuedBrandId ,brandName: brandName, author: self.owner?.address!, data: data)
+            self.ownedBrands[NFTContract.lastIssuedBrandId] = newBrand 
+            NFTContract.lastIssuedBrandId = NFTContract.lastIssuedBrandId + 1
         }
 
         //method to update the existing Brand, only author of brand can update this brand
@@ -403,16 +403,16 @@ pub contract ImsaNFTContract: NonFungibleToken {
                 // the transaction will instantly revert if
                 // the capability has not been added
                 self.capability != nil: "I don't have the special capability :("
-                ImsaNFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
-                ImsaNFTContract.allBrands[brandId] != nil: "brand Id does not exists"
+                NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
+                NFTContract.allBrands[brandId] != nil: "brand Id does not exists"
             }
 
-            let oldBrand = ImsaNFTContract.allBrands[brandId]
+            let oldBrand = NFTContract.allBrands[brandId]
             if self.owner?.address! != oldBrand!.author {
                 panic("No permission to update others brand")
             }
 
-            ImsaNFTContract.allBrands[brandId]!.update(data: data)
+            NFTContract.allBrands[brandId]!.update(data: data)
             emit BrandUpdated(brandId: brandId, brandName: oldBrand!.brandName, author: oldBrand!.author, data: data)
         }
 
@@ -422,14 +422,14 @@ pub contract ImsaNFTContract: NonFungibleToken {
                 // the transaction will instantly revert if 
                 // the capability has not been added
                 self.capability != nil: "I don't have the special capability :("
-                ImsaNFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
+                NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
             }
 
             let newSchema = Schema(schemaName: schemaName, author: self.owner?.address!, format: format)
-            ImsaNFTContract.allSchemas[ImsaNFTContract.lastIssuedSchemaId] = newSchema
-            emit SchemaCreated(schemaId: ImsaNFTContract.lastIssuedSchemaId, schemaName: schemaName, author: self.owner?.address!)
-            self.ownedSchemas[ImsaNFTContract.lastIssuedSchemaId] = newSchema
-            ImsaNFTContract.lastIssuedSchemaId = ImsaNFTContract.lastIssuedSchemaId + 1
+            NFTContract.allSchemas[NFTContract.lastIssuedSchemaId] = newSchema
+            emit SchemaCreated(schemaId: NFTContract.lastIssuedSchemaId, schemaName: schemaName, author: self.owner?.address!)
+            self.ownedSchemas[NFTContract.lastIssuedSchemaId] = newSchema
+            NFTContract.lastIssuedSchemaId = NFTContract.lastIssuedSchemaId + 1
             
         }
 
@@ -439,16 +439,16 @@ pub contract ImsaNFTContract: NonFungibleToken {
                 // the transaction will instantly revert if 
                 // the capability has not been added
                 self.capability != nil: "I don't have the special capability :("
-                ImsaNFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
+                NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
                 self.ownedBrands[brandId] != nil: "Collection Id Must be valid"
                 self.ownedSchemas[schemaId] != nil: "Schema Id Must be valid"
             }
 
             let newTemplate = Template(brandId: brandId, schemaId: schemaId, maxSupply: maxSupply, immutableData: immutableData, mutableData: mutableData)
-            ImsaNFTContract.allTemplates[ImsaNFTContract.lastIssuedTemplateId] = newTemplate
-            emit TemplateCreated(templateId: ImsaNFTContract.lastIssuedTemplateId, brandId: brandId, schemaId: schemaId, maxSupply: maxSupply)
-            self.ownedTemplates[ImsaNFTContract.lastIssuedTemplateId] = newTemplate
-            ImsaNFTContract.lastIssuedTemplateId = ImsaNFTContract.lastIssuedTemplateId + 1
+            NFTContract.allTemplates[NFTContract.lastIssuedTemplateId] = newTemplate
+            emit TemplateCreated(templateId: NFTContract.lastIssuedTemplateId, brandId: brandId, schemaId: schemaId, maxSupply: maxSupply)
+            self.ownedTemplates[NFTContract.lastIssuedTemplateId] = newTemplate
+            NFTContract.lastIssuedTemplateId = NFTContract.lastIssuedTemplateId + 1
         }
         
           //method to update the existing template's mutable data, only author of brand can update this template
@@ -457,16 +457,16 @@ pub contract ImsaNFTContract: NonFungibleToken {
                 // the transaction will instantly revert if
                 // the capability has not been added
                 self.capability != nil: "I don't have the special capability :("
-                ImsaNFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
-                ImsaNFTContract.allTemplates[templateId] != nil: "Template Id does not exists"        
+                NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
+                NFTContract.allTemplates[templateId] != nil: "Template Id does not exists"        
             }
 
-            let oldTemplate = ImsaNFTContract.allTemplates[templateId]
-            if self.owner?.address! != ImsaNFTContract.allBrands[oldTemplate!.brandId]!.author {
+            let oldTemplate = NFTContract.allTemplates[templateId]
+            if self.owner?.address! != NFTContract.allBrands[oldTemplate!.brandId]!.author {
                 panic("No permission to update others Template's Mutable Data")
             }
 
-            ImsaNFTContract.allTemplates[templateId]!.updateMutableData(mutableData: mutableData)
+            NFTContract.allTemplates[templateId]!.updateMutableData(mutableData: mutableData)
             emit TemplateUpdated(templateId: templateId)
         }
 
@@ -475,16 +475,16 @@ pub contract ImsaNFTContract: NonFungibleToken {
             pre{
                 // the transaction will instantly revert if the capability has not been added
                 self.capability != nil: "I don't have the special capability :("
-                ImsaNFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
-                ImsaNFTContract.allTemplates[templateId] != nil: "Template Id does not exists"   
+                NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
+                NFTContract.allTemplates[templateId] != nil: "Template Id does not exists"   
             }
 
-            let oldTemplate = ImsaNFTContract.allTemplates[templateId]
-            if self.owner?.address! != ImsaNFTContract.allBrands[oldTemplate!.brandId]!.author {
+            let oldTemplate = NFTContract.allTemplates[templateId]
+            if self.owner?.address! != NFTContract.allBrands[oldTemplate!.brandId]!.author {
                 panic("No permission to update others Template's Mutable Data")
             }
 
-            ImsaNFTContract.allTemplates[templateId]!.updateMutableAttribute(key: key, value: value)
+            NFTContract.allTemplates[templateId]!.updateMutableAttribute(key: key, value: value)
             emit TemplateUpdated(templateId: templateId)
         }
         //method to mint NFT, only access by the verified user
@@ -493,16 +493,16 @@ pub contract ImsaNFTContract: NonFungibleToken {
                 // the transaction will instantly revert if 
                 // the capability has not been added
                 self.capability != nil: "I don't have the special capability :("
-                ImsaNFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
+                NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
                 self.ownedTemplates[templateId]!= nil: "Minter does not have specific template Id"
-                ImsaNFTContract.allTemplates[templateId] != nil: "Template Id must be valid"
+                NFTContract.allTemplates[templateId] != nil: "Template Id must be valid"
                 }
             let receiptAccount = getAccount(account)
             let recipientCollection = receiptAccount
-                .getCapability(ImsaNFTContract.CollectionPublicPath)
-                .borrow<&{ImsaNFTContract.ImsaNFTContractCollectionPublic}>()
+                .getCapability(NFTContract.CollectionPublicPath)
+                .borrow<&{NFTContract.NFTContractCollectionPublic}>()
                 ?? panic("Could not get receiver reference to the NFT Collection")
-            var newNFT: @NFT <- create NFT(templateID: templateId, mintNumber: ImsaNFTContract.allTemplates[templateId]!.incrementIssuedSupply(), immutableData: immutableData)
+            var newNFT: @NFT <- create NFT(templateID: templateId, mintNumber: NFTContract.allTemplates[templateId]!.incrementIssuedSupply(), immutableData: immutableData)
             recipientCollection.deposit(token: <-newNFT)
         }
 
@@ -510,12 +510,12 @@ pub contract ImsaNFTContract: NonFungibleToken {
         pub fun removeTemplateById(templateId: UInt64) {
             pre {
                 self.capability != nil: "I don't have the special capability :("
-                ImsaNFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
+                NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
                 templateId != nil: "invalid template id"
-                ImsaNFTContract.allTemplates[templateId]!=nil: "template id does not exist"
-                ImsaNFTContract.allTemplates[templateId]!.issuedSupply == 0: "could not remove template with given id"   
+                NFTContract.allTemplates[templateId]!=nil: "template id does not exist"
+                NFTContract.allTemplates[templateId]!.issuedSupply == 0: "could not remove template with given id"   
             }
-            ImsaNFTContract.allTemplates.remove(key: templateId)
+            NFTContract.allTemplates.remove(key: templateId)
             emit TemplateRemoved(templateId: templateId)
         }
 
@@ -529,7 +529,7 @@ pub contract ImsaNFTContract: NonFungibleToken {
     
     //method to create empty Collection
     pub fun createEmptyCollection(): @NonFungibleToken.Collection {
-        return <- create ImsaNFTContract.Collection()
+        return <- create NFTContract.Collection()
     }
 
     //method to create Admin Resources
@@ -549,47 +549,47 @@ pub contract ImsaNFTContract: NonFungibleToken {
                 invalidKey = "key $".concat(key.concat(" not found"))
                 break
             }
-            if format[key] == ImsaNFTContract.SchemaType.String {
+            if format[key] == NFTContract.SchemaType.String {
                 if(value as? String == nil) {
                     isValidTemplate = false
                     invalidKey = "key $".concat(key.concat(" has type mismatch"))
                     break
                 }
             }
-            else if format[key] == ImsaNFTContract.SchemaType.Int {
+            else if format[key] == NFTContract.SchemaType.Int {
                 if(value as? Int == nil) {
                     isValidTemplate = false
                     invalidKey = "key $".concat(key.concat(" has type mismatch"))
                     break
                 }
             } 
-            else if format[key] == ImsaNFTContract.SchemaType.Fix64 {
+            else if format[key] == NFTContract.SchemaType.Fix64 {
                 if(value as? Fix64 == nil) {
                     isValidTemplate = false
                     invalidKey = "key $".concat(key.concat(" has type mismatch"))
                     break
                 }
-            }else if format[key] == ImsaNFTContract.SchemaType.Bool {
+            }else if format[key] == NFTContract.SchemaType.Bool {
                 if(value as? Bool == nil) {
                     isValidTemplate = false
                     invalidKey = "key $".concat(key.concat(" has type mismatch"))
                     break
                 }
-            }else if format[key] == ImsaNFTContract.SchemaType.Address {
+            }else if format[key] == NFTContract.SchemaType.Address {
                 if(value as? Address == nil) {
                     isValidTemplate = false
                     invalidKey = "key $".concat(key.concat(" has type mismatch"))
                     break
                 }
             }
-            else if format[key] == ImsaNFTContract.SchemaType.Array {
+            else if format[key] == NFTContract.SchemaType.Array {
                 if(value as? [AnyStruct] == nil) {
                     isValidTemplate = false
                     invalidKey = "key $".concat(key.concat(" has type mismatch"))
                     break
                 }
             }
-            else if format[key] == ImsaNFTContract.SchemaType.Any {
+            else if format[key] == NFTContract.SchemaType.Any {
                 if(value as? {String:AnyStruct} == nil && value as? {UInt64:AnyStruct} == nil) {
                     isValidTemplate = false
                     invalidKey = "key $".concat(key.concat(" has type mismatch"))
@@ -602,49 +602,49 @@ pub contract ImsaNFTContract: NonFungibleToken {
 
     //method to get all brands
     pub fun getAllBrands(): {UInt64: Brand} {
-        return ImsaNFTContract.allBrands
+        return NFTContract.allBrands
     }
 
     //method to get brand by id
     pub fun getBrandById(brandId: UInt64): Brand {
         pre {
-            ImsaNFTContract.allBrands[brandId] != nil: "brand Id does not exists"
+            NFTContract.allBrands[brandId] != nil: "brand Id does not exists"
         }
-        return ImsaNFTContract.allBrands[brandId]!
+        return NFTContract.allBrands[brandId]!
     }
 
     //method to get all schema
     pub fun getAllSchemas(): {UInt64: Schema} {
-        return ImsaNFTContract.allSchemas
+        return NFTContract.allSchemas
     }
 
     //method to get schema by id
     pub fun getSchemaById(schemaId: UInt64): Schema {
         pre {
-            ImsaNFTContract.allSchemas[schemaId] != nil: "schema id does not exist"
+            NFTContract.allSchemas[schemaId] != nil: "schema id does not exist"
         }
-        return ImsaNFTContract.allSchemas[schemaId]!
+        return NFTContract.allSchemas[schemaId]!
     }
 
     //method to get all templates
     pub fun getAllTemplates(): {UInt64: Template} {
-        return ImsaNFTContract.allTemplates
+        return NFTContract.allTemplates
     }
 
     //method to get template by id
     pub fun getTemplateById(templateId: UInt64): Template {
         pre {
-            ImsaNFTContract.allTemplates[templateId]!=nil: "Template id does not exist"
+            NFTContract.allTemplates[templateId]!=nil: "Template id does not exist"
         }
-        return ImsaNFTContract.allTemplates[templateId]!
+        return NFTContract.allTemplates[templateId]!
     } 
 
     //method to get nft-data by id
     pub fun getNFTDataById(nftId: UInt64): NFTData {
         pre {
-            ImsaNFTContract.allNFTs[nftId]!=nil:"nft id does not exist"
+            NFTContract.allNFTs[nftId]!=nil:"nft id does not exist"
         }
-        return ImsaNFTContract.allNFTs[nftId]!
+        return NFTContract.allNFTs[nftId]!
     }
 
     //Initialize all variables with default values

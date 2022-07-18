@@ -1,4 +1,4 @@
-import ImsaNFTContract from 0xf8d6e0586b0a20c7
+import NFTContract from 0xf8d6e0586b0a20c7
 
 transaction(admin: Address) {
     prepare(signer: AuthAccount) {
@@ -8,13 +8,13 @@ transaction(admin: Address) {
 
         // get the public capability from the Admin's public storage
         let TemplateAdminResource = TemplateAdminAccount.getCapability
-            <&{ImsaNFTContract.UserSpecialCapability}>
+            <&{NFTContract.UserSpecialCapability}>
             (/public/UserSpecialCapability)
             .borrow()
             ?? panic("could not borrow reference to UserSpecialCapability")
 
         //get admin refrence for adding AdminCapability
-        let adminRef = signer.getCapability<&ImsaNFTContract.AdminCapability>(ImsaNFTContract.AdminCapabilityPrivate).borrow() 
+        let adminRef = signer.getCapability<&NFTContract.AdminCapability>(NFTContract.AdminCapabilityPrivate).borrow() 
                         ?? panic("could not get borrow the refrence")
         let userResponse = adminRef.isWhiteListedAccount(_user: admin) 
         if(userResponse == false) {
@@ -25,8 +25,8 @@ transaction(admin: Address) {
         // get the private capability from the Authorized owner of the AdminResource
         // this will be the signer of this transaction
         let specialCapability = signer.getCapability
-            <&{ImsaNFTContract.NFTMethodsCapability}>
-            (ImsaNFTContract.NFTMethodsCapabilityPrivatePath) 
+            <&{NFTContract.NFTMethodsCapability}>
+            (NFTContract.NFTMethodsCapabilityPrivatePath) 
 
         // if the special capability is valid...
         if specialCapability.check() {

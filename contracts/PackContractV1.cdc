@@ -1,6 +1,6 @@
 import NonFungibleToken from 0xf8d6e0586b0a20c7
 import FungibleToken from 0xee82856bf20e2aa6
-import ImsaNFTContract from 0xf8d6e0586b0a20c7
+import NFTContract from 0xf8d6e0586b0a20c7
 import FlowToken from 0x0ae53cb6e3f42a79
 
 pub contract  PackContractV1{
@@ -30,7 +30,7 @@ pub contract  PackContractV1{
   // dictionary to store the user purchased packs ids
   access(contract) var userPacks: {Address: [UInt64]}
   // variable to store the admin capability to NFT-Methods
-  access(contract) var adminref: Capability<&{ImsaNFTContract.NFTMethodsCapability}>
+  access(contract) var adminref: Capability<&{NFTContract.NFTMethodsCapability}>
 
 
   // structure to store the data for pack
@@ -110,7 +110,7 @@ pub contract  PackContractV1{
       let totalMints = PackContractV1.allPacks[packId]!.totalNFTs
       var i: UInt64 = 0
       while i < totalMints {
-        let templateData = ImsaNFTContract.getTemplateById(templateId: PackContractV1.availableNFTS[i])
+        let templateData = NFTContract.getTemplateById(templateId: PackContractV1.availableNFTS[i])
         if templateData.issuedSupply < templateData.maxSupply {
           PackContractV1.adminref.borrow()!.mintNFT(templateId: templateData.templateId, account: receiptAccount, immutableData: nil)
           //count.saturatingAdd(1)
@@ -131,7 +131,7 @@ pub contract  PackContractV1{
       }
 
       for tempId in templateIds{
-        let templateData = ImsaNFTContract.getTemplateById(templateId: tempId)
+        let templateData = NFTContract.getTemplateById(templateId: tempId)
         if templateData !=nil && PackContractV1.availableNFTS.contains(tempId) == false {
           PackContractV1.availableNFTS.append(tempId)
         }
@@ -160,7 +160,7 @@ pub contract  PackContractV1{
     self.userPacks = {}
 
     var adminPrivateCap = self.account.getCapability
-            <&{ImsaNFTContract.NFTMethodsCapability}>(ImsaNFTContract.NFTMethodsCapabilityPrivatePath)
+            <&{NFTContract.NFTMethodsCapability}>(NFTContract.NFTMethodsCapabilityPrivatePath)
     self.adminref = adminPrivateCap
     self.PackStoragePath = /storage/packStoragePath
     self.PackPublicPath = /public/packPublicPath

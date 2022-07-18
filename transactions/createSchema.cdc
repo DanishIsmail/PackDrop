@@ -1,26 +1,26 @@
-import ImsaNFTContract from 0xf8d6e0586b0a20c7
+import NFTContract from 0xf8d6e0586b0a20c7
 
 transaction (schemaName:String){
 
       prepare(acct: AuthAccount) {
 
             let actorResource = acct.getCapability
-                  <&{ImsaNFTContract.NFTMethodsCapability}>
-                  (ImsaNFTContract.NFTMethodsCapabilityPrivatePath)
+                  <&{NFTContract.NFTMethodsCapability}>
+                  (NFTContract.NFTMethodsCapabilityPrivatePath)
                   .borrow() ?? 
                   panic("could not borrow a reference to the NFTMethodsCapability interface")
 
 
-            let format : {String: ImsaNFTContract.SchemaType} = {
-            "artist" : ImsaNFTContract.SchemaType.String,
-            "artistEmail"  :  ImsaNFTContract.SchemaType.String,
-            "title":ImsaNFTContract.SchemaType.String,
-            "mintType":  ImsaNFTContract.SchemaType.String,
-            "nftType":  ImsaNFTContract.SchemaType.String,
-            "rarity":  ImsaNFTContract.SchemaType.String,
-            "contectType":  ImsaNFTContract.SchemaType.String,
-            "contectValue":  ImsaNFTContract.SchemaType.String,
-            "extras": ImsaNFTContract.SchemaType.Any
+            let format : {String: NFTContract.SchemaType} = {
+            "artist" : NFTContract.SchemaType.String,
+            "artistEmail"  :  NFTContract.SchemaType.String,
+            "title":NFTContract.SchemaType.String,
+            "mintType":  NFTContract.SchemaType.String,
+            "nftType":  NFTContract.SchemaType.String,
+            "rarity":  NFTContract.SchemaType.String,
+            "contectType":  NFTContract.SchemaType.String,
+            "contectValue":  NFTContract.SchemaType.String,
+            "extras": NFTContract.SchemaType.Any
             }
 
             actorResource.createSchema(schemaName: schemaName, format: format)

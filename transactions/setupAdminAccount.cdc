@@ -1,29 +1,29 @@
-import ImsaNFTContract from 0xf8d6e0586b0a20c7
+import NFTContract from 0xf8d6e0586b0a20c7
 
 transaction() {
     prepare(signer: AuthAccount) {
         // save the resource to the signer's account storage
-        if signer.getLinkTarget(ImsaNFTContract.NFTMethodsCapabilityPrivatePath) == nil {
-            let adminResouce <- ImsaNFTContract.createAdminResource()
-            signer.save(<- adminResouce, to: ImsaNFTContract.AdminResourceStoragePath)
+        if signer.getLinkTarget(NFTContract.NFTMethodsCapabilityPrivatePath) == nil {
+            let adminResouce <- NFTContract.createAdminResource()
+            signer.save(<- adminResouce, to: NFTContract.AdminResourceStoragePath)
             // link the UnlockedCapability in private storage
-            signer.link<&{ImsaNFTContract.NFTMethodsCapability}>(
-                ImsaNFTContract.NFTMethodsCapabilityPrivatePath,
-                target: ImsaNFTContract.AdminResourceStoragePath
+            signer.link<&{NFTContract.NFTMethodsCapability}>(
+                NFTContract.NFTMethodsCapabilityPrivatePath,
+                target: NFTContract.AdminResourceStoragePath
             )
         }
 
-        signer.link<&{ImsaNFTContract.UserSpecialCapability}>(
+        signer.link<&{NFTContract.UserSpecialCapability}>(
             /public/UserSpecialCapability,
-            target: ImsaNFTContract.AdminResourceStoragePath
+            target: NFTContract.AdminResourceStoragePath
         )
 
-        let collection  <- ImsaNFTContract.createEmptyCollection()
+        let collection  <- NFTContract.createEmptyCollection()
         // store the empty NFT Collection in account storage
-        signer.save( <- collection, to:ImsaNFTContract.CollectionStoragePath)
+        signer.save( <- collection, to:NFTContract.CollectionStoragePath)
         log("Collection created for account".concat(signer.address.toString()))
         // create a public capability for the Collection
-        signer.link<&{ImsaNFTContract.ImsaNFTContractCollectionPublic}>(ImsaNFTContract.CollectionPublicPath, target:ImsaNFTContract.CollectionStoragePath)
+        signer.link<&{NFTContract.NFTContractCollectionPublic}>(NFTContract.CollectionPublicPath, target:NFTContract.CollectionStoragePath)
         log("Capability created")
     }
 }
