@@ -11,7 +11,12 @@ transaction(packId: UInt64, totalNFTs: UInt64, packPrice: UFix64){
         let packData: {String: AnyStruct} = {
             "packName": "MyPack"
         }
-        self.adminRef.createPack(packId: packId, data: packData, totalNFTs: totalNFTs, packPrice: packPrice);
+        let templates: {UInt64: UInt64} = {
+            1: 2,
+            2: 1,
+            3: 2
+        }
+        self.adminRef.createAdminPack(packId: packId, data: packData, availableTemplates: templates, totalNFTs: totalNFTs, packPrice: packPrice);
         log("Pack created")
 
     }

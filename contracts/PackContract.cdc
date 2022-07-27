@@ -33,10 +33,6 @@ pub contract  PackContract{
   // State Vraibles
   // dictionary to store the pack data against pack id
   access(contract) var allPacks: {UInt64: PackData} // {packId:PackData}
-  // dictionary to store available nfts
-  access(contract) var availableNFTS: {UInt64: UInt64} // {templateId:availableSupply}
-  // dictionary to store the user purchased packs ids
- //access(contract) var userPacks: {Address: [UInt64]}
   // variable to store the admin capability to NFT-Methods
   access(contract) var adminref: Capability<&{NFTContract.NFTMethodsCapability}>
 
@@ -46,12 +42,14 @@ pub contract  PackContract{
   pub struct PackData {
     pub let packId: UInt64
     pub let data: {String: AnyStruct} //{name:any_data_of_pack}
+    pub let availableTemplates: {UInt64: UInt64} // {templateid: supply}
     pub let totalNFTs: UInt64 // How many NFT a pack can hold
     pub var packPrice: UFix64 
 
-    init(packId: UInt64, data: {String: AnyStruct}, totalNFTs: UInt64, packPrice: UFix64) {
+    init(packId: UInt64, data: {String: AnyStruct}, availableTemplates: {UInt64: UInt64},totalNFTs: UInt64, packPrice: UFix64) {
       self.packId = packId
       self.data = data
+      self.availableTemplates = availableTemplates
       self.totalNFTs = totalNFTs
       self.packPrice = packPrice
     } 
@@ -76,16 +74,22 @@ pub contract  PackContract{
     }
     
     //method to create the pack 
-    pub fun createPack(packId: UInt64, data: {String: AnyStruct}, totalNFTs: UInt64, packPrice: UFix64){
+    pub fun createAdminPack(packId: UInt64, data: {String: AnyStruct}, availableTemplates: {UInt64: UInt64}, totalNFTs: UInt64, packPrice: UFix64){
       pre {
         packId !=0 && PackContract.allPacks[packId] == nil: "Please provide valid pack id"
         data.keys.length !=0: "Please provide pack data"
         totalNFTs  > 0 && totalNFTs <= 5: "Please provide valid NFT's length"
-        packPrice > UFix64(0): "please provide price greater then zero"
-        UInt64(PackContract.availableNFTS.keys.length) >= totalNFTs: "please add availble NFT Ids first"      
+        packPrice > UFix64(0): "please provide price greater then zero"      
+      }
+      var countSupply: UInt64 = 0
+      for temp in availableTemplates.keys {
+          let templateData = NFTContract.getTemplateById(templateId: temp)
+          assert(templateData != nil, message: "please provide valid template ids") 
+          countSupply = countSupply + availableTemplates[temp]!
       }
 
-      let newPack =  PackData(packId: packId, data: data, totalNFTs: totalNFTs, packPrice: packPrice)
+      assert(countSupply == totalNFTs, message: "total nfts count is not valid")
+      let newPack =  PackData(packId: packId, data: data, availableTemplates: availableTemplates, totalNFTs: totalNFTs, packPrice: packPrice)
       PackContract.allPacks[packId] = newPack
 
       emit PackCreated(packId: packId, totalNFTs: totalNFTs)
@@ -106,26 +110,11 @@ pub contract  PackContract{
       let userPackCollectionRef = getAccount(receiptAccount).getCapability(PackContract.PackCollectionPublicPath)
                                   .borrow<&{PackContract.PackCollectionPublicMethods}>() 
                                   ?? panic("could not get reciever refrence to pack collection")
-      userPackCollectionRef!.depositPack(token: <- PackContract.createPackOpen(packId: packId, transferAble: true))
+      userPackCollectionRef!.depositPack(token: <- PackContract.createPack(packId: packId, transferAble: true))
 
       let packPrice = PackContract.allPacks[packId]!.packPrice
       emit PackPurchased(packId: packId, price: packPrice, receiptAddress: receiptAccount)
     }
-
-    pub fun addAvailableNFTs(templateIds: {UInt64: UInt64}) {
-      pre {
-        templateIds.keys.length !=0: "please provide valid ids" 
-      }
-
-      for tempId in templateIds.keys{
-        let templateData = NFTContract.getTemplateById(templateId: tempId)
-        let templateSupply = templateIds[tempId]
-        assert(templateData.maxSupply >= templateSupply!, message: "template supply should be valid")
-        if templateData !=nil && PackContract.availableNFTS.containsKey(tempId) == false {
-          PackContract.availableNFTS[tempId] = templateIds[tempId]
-        }
-      }
-    } 
 
     init(){
       self.ownerVault = nil
@@ -141,20 +130,19 @@ pub contract  PackContract{
     // method to open the pack
     pub fun openPack(receiptAccount: Address){
       pre {
-        receiptAccount != nil: "receipent address should not be null"
+        //receiptAccount != nil: "receipent address should not be null"
         self.packId != 0 && PackContract.allPacks[self.packId] != nil : "User does not have any pack"
       }
       let totalMints = PackContract.allPacks[self.packId]!.totalNFTs
-      var i: UInt64 = 0
-      while i < totalMints {
-        let templateData = NFTContract.getTemplateById(templateId: PackContract.availableNFTS.keys[i])
-        if templateData.issuedSupply < PackContract.availableNFTS[templateData.templateId]! {
-          PackContract.adminref.borrow()!.mintNFT(templateId: templateData.templateId, account: receiptAccount, immutableData: nil)
-        }
-        else {
-            PackContract.availableNFTS.remove(key: templateData.templateId)
-        }
-        i = i + 1
+      let templates = PackContract.allPacks[self.packId]!.availableTemplates
+      
+      for tempId in templates.keys {
+          var templateData = NFTContract.getTemplateById(templateId: tempId)
+          var i: UInt64 = 0
+          while i < templates[tempId]! {
+              PackContract.adminref.borrow()!.mintNFT(templateId: templateData.templateId, account: receiptAccount, immutableData: nil)
+              i = i + 1
+          }
       }
 
       self.packId = 0
@@ -180,7 +168,7 @@ pub contract  PackContract{
       pre {
         withdrawPackId != 0 && self.ownedPacks[withdrawPackId] != nil: "please provide valid id"
       }
-      emit PackWithdrawan(packId: withdrawPackId, receiptAddress: self.owner?.address!)
+      //emit PackWithdrawan(packId: withdrawPackId, receiptAddress: self.owner?.address!)
       return <- self.ownedPacks.remove(key: withdrawPackId)! 
 
     }
@@ -213,7 +201,7 @@ pub contract  PackContract{
   }
 
   // method to create the openPack resourcre
-  access(contract) fun createPackOpen(packId: UInt64, transferAble: Bool): @PackContract.Pack {
+  access(contract) fun createPack(packId: UInt64, transferAble: Bool): @PackContract.Pack {
     return <- create  Pack(packId: packId, transferAble: transferAble)
   }
 
@@ -234,8 +222,6 @@ pub contract  PackContract{
   init(){
 
     self.allPacks = {}
-    //self.userPacks = {}
-    self.availableNFTS = {}
 
     var adminPrivateCap = self.account.getCapability
             <&{NFTContract.NFTMethodsCapability}>(NFTContract.NFTMethodsCapabilityPrivatePath)
