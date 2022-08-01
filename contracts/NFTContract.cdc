@@ -271,10 +271,10 @@ pub contract NFTContract: NonFungibleToken {
         // withdraw method will withdraw NFT from NFT id from user storage 
         pub fun withdraw(withdrawID: UInt64): @NonFungibleToken.NFT {
             let token <- self.ownedNFTs.remove(key: withdrawID) 
-                ?? panic("Cannot withdraw: template does not exist in the collection")
+                ?? panic("Cannot withdraw: Template id ".concat(withdrawID.toString()).concat(" does not exist").concat(" in the collection"))
             emit Withdraw(id: token.id, from: self.owner?.address)
             return <-token
-        }
+        } 
 
         // getIDs mehtod will return all NFT-ids that are owned by a user 
         pub fun getIDs(): [UInt64] {
@@ -343,7 +343,7 @@ pub contract NFTContract: NonFungibleToken {
         
         pub fun addwhiteListedAccount(_user: Address) {
             pre{
-                NFTContract.whiteListedAccounts.contains(_user) == false: "user already exist"
+                NFTContract.whiteListedAccounts.contains(_user) == false: "user ".concat(_user.toString()).concat(" already exist")
             }
             NFTContract.whiteListedAccounts.append(_user)
         }
@@ -404,7 +404,7 @@ pub contract NFTContract: NonFungibleToken {
                 // the capability has not been added
                 self.capability != nil: "I don't have the special capability :("
                 NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
-                NFTContract.allBrands[brandId] != nil: "brand Id does not exists"
+                NFTContract.allBrands[brandId] != nil: "brand Id".concat(brandId.toString()).concat(" does not exist!") 
             }
 
             let oldBrand = NFTContract.allBrands[brandId]
@@ -458,7 +458,7 @@ pub contract NFTContract: NonFungibleToken {
                 // the capability has not been added
                 self.capability != nil: "I don't have the special capability :("
                 NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
-                NFTContract.allTemplates[templateId] != nil: "Template Id does not exists"        
+                NFTContract.allTemplates[templateId] != nil: "Template id ".concat(templateId.toString()).concat(" does not exist!")       
             }
 
             let oldTemplate = NFTContract.allTemplates[templateId]
@@ -476,7 +476,7 @@ pub contract NFTContract: NonFungibleToken {
                 // the transaction will instantly revert if the capability has not been added
                 self.capability != nil: "I don't have the special capability :("
                 NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
-                NFTContract.allTemplates[templateId] != nil: "Template Id does not exists"   
+                NFTContract.allTemplates[templateId] != nil: "Template id ".concat(templateId.toString()).concat(" does not exist!")  
             }
 
             let oldTemplate = NFTContract.allTemplates[templateId]
@@ -512,7 +512,7 @@ pub contract NFTContract: NonFungibleToken {
                 self.capability != nil: "I don't have the special capability :("
                 NFTContract.whiteListedAccounts.contains(self.owner!.address): "you are not authorized for this action"
                 templateId != nil: "invalid template id"
-                NFTContract.allTemplates[templateId]!=nil: "template id does not exist"
+                NFTContract.allTemplates[templateId]!=nil: "Template id ".concat(templateId.toString()).concat(" does not exist!") 
                 NFTContract.allTemplates[templateId]!.issuedSupply == 0: "could not remove template with given id"   
             }
             NFTContract.allTemplates.remove(key: templateId)
@@ -608,7 +608,7 @@ pub contract NFTContract: NonFungibleToken {
     //method to get brand by id
     pub fun getBrandById(brandId: UInt64): Brand {
         pre {
-            NFTContract.allBrands[brandId] != nil: "brand Id does not exists"
+            NFTContract.allBrands[brandId] != nil: "brand Id".concat(brandId.toString()).concat(" does not exist!") 
         }
         return NFTContract.allBrands[brandId]!
     }
@@ -621,7 +621,7 @@ pub contract NFTContract: NonFungibleToken {
     //method to get schema by id
     pub fun getSchemaById(schemaId: UInt64): Schema {
         pre {
-            NFTContract.allSchemas[schemaId] != nil: "schema id does not exist"
+            NFTContract.allSchemas[schemaId] != nil: "schema id".concat(schemaId.toString()).concat(" does not exist!") .concat(schemaId.toString()).concat(" does not exist!") 
         }
         return NFTContract.allSchemas[schemaId]!
     }
@@ -634,7 +634,7 @@ pub contract NFTContract: NonFungibleToken {
     //method to get template by id
     pub fun getTemplateById(templateId: UInt64): Template {
         pre {
-            NFTContract.allTemplates[templateId]!=nil: "Template id does not exist"
+            NFTContract.allTemplates[templateId]!=nil: "Template id ".concat(templateId.toString()).concat(" does not exist!") 
         }
         return NFTContract.allTemplates[templateId]!
     } 
@@ -642,7 +642,7 @@ pub contract NFTContract: NonFungibleToken {
     //method to get nft-data by id
     pub fun getNFTDataById(nftId: UInt64): NFTData {
         pre {
-            NFTContract.allNFTs[nftId]!=nil:"nft id does not exist"
+            NFTContract.allNFTs[nftId]!=nil:"NFT Id ".concat(nftId.toString()).concat(" does not exist!") 
         }
         return NFTContract.allNFTs[nftId]!
     }
